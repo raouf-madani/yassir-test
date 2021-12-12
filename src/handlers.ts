@@ -1,47 +1,66 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { PokemonWithStats } from "models/PokemonWithStats";
+require('dotenv').config();
 
 export async function getPokemonByName(request: FastifyRequest, reply: FastifyReply) {
-  var name: string = request.params['name']
-
+  const name: string = request.params['name']
+  
   reply.headers['Accept'] = 'application/json'
+  
+  let urlApiPokeman = `https://pokeapi.co/api/v2/pokemon`;//fix error number 1 * delete (/)
 
-  var urlApiPokeman = `https://pokeapi.co/api/v2/pokemon/`;
+  
 
-  var params = {}
-
-  name == null
-      ? name.trim() != ''
-      ? (params["name"] = name, urlApiPokeman = urlApiPokeman + '/', urlApiPokeman = urlApiPokeman + name)
-      : (urlApiPokeman = urlApiPokeman + '"?offset=20"', urlApiPokeman = urlApiPokeman + "&limit=20")
-      : (urlApiPokeman = urlApiPokeman + '"?offset=20"', urlApiPokeman = urlApiPokeman + "&limit=20")
+  //fix error 2 * delete additional quotes in '"?offset=20"'
+  (name == null) || (name.trim() != '')
+      ? (urlApiPokeman = urlApiPokeman + '?offset=20', urlApiPokeman = urlApiPokeman + "&limit=20")
+      : ( urlApiPokeman = urlApiPokeman + '/', urlApiPokeman = urlApiPokeman + name)
+     
+      
+  console.log(urlApiPokeman);
 
   const http = require('http');
   const keepAliveAgent = new http.Agent({ keepAlive: true });
 
-  let response: any = ""
+ 
+  // fix error 3 * add method GET to our http request and assign port number via environment
+  http.get(urlApiPokeman, (res:any) => {
+    
+    let mydata = '';
+        res.on("data", (data) =>{
+          
+            mydata += data;
+        });
+        res.on('end', () => {
+            const response = JSON.parse(mydata);
+            console.log(response);
+            computeResponse(response);
+            res.send(response.name);
+            
+        });
+ 
+    })
 
-  http.request({ ...reply.headers, ...({ hostname: urlApiPokeman, port: 80, }) }, (result) => { response = result })
+  
 
-  if (response == null) {
-    reply.code(404)
-  }
 
-  computeResponse(response, reply)
-
-  reply.send(response)
-
-  return reply
+ 
 }
 
-export const computeResponse = async (response: unknown, reply: FastifyReply) => {
+//fix error 4 by replacing unknown type with any and delete second parameter
+
+const computeResponse = async (response: any) => {
   const resp = response as any
 
-  let types = resp.types.map(type => type.type).map(type => { return type.url }).reduce((types, typeUrl) => types.push(typeUrl));
+  let types = resp.types.map(type => type.type);
+  let typesURL= types.map(type => { return type.url });
+  // no need for reduce method because it must have a function as a first input
+  // We'll loop through typesURL array to make a request to every link
+  
 
   let pokemonTypes = []
 
-  types.forEach(element => {
+  typesURL.forEach(element => {
     const http = require('http');
     const keepAliveAgent = new http.Agent({ keepAlive: true });
 

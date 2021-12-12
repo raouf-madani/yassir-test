@@ -1,6 +1,7 @@
 import { getPokemonByName } from "./handlers";
 
 export default function router(fastify, opts, next) {
-  fastify.get("/poke/:name", getPokemonByName);
+
+  fastify.get("/api/v2/pokemon/:name", getPokemonByName);
   next();
 }
